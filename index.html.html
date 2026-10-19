@@ -110,12 +110,12 @@ function renderHome(){
    <div class="card course-progress-card"><div class="sectionhead"><div><h2>Course progress</h2><small>Lecture progress is separate from topic completion</small></div><button class="tinybtn" data-go="courses">All courses →</button></div><div class="course-progress-grid">${courseCards}</div><div class="footerhint">Weekly analytics and detailed course breakdowns live in their dedicated pages.</div></div>
   </div>
   <div class="dashboard-side">
+    <div class="card"><div class="sectionhead"><div><h2>Top priorities</h2><small>Your next most important tasks</small></div><button class="tinybtn" data-go="tasks">Manage →</button></div>${topTasks.length?groupedTaskList(topTasks,{compact:true,openByDefault:false,showTools:false,showDate:true}):empty('No open tasks','Add tasks to keep track of priorities.')}</div>
    <div class="dashboard-radar-grid">
     <div class="card"><div class="sectionhead"><div><h2>Task Deadline Radar</h2><small>Tasks with explicit deadlines</small></div><button class="tinybtn" data-go="tasks">Manage →</button></div>${renderTaskDeadlineRadar()}</div>
     <div class="card"><div class="sectionhead"><div><h2>Topic Deadline Radar</h2><small>Course and topic deadlines</small></div><button class="tinybtn" data-go="topics">Manage →</button></div>${renderTopicDeadlineRadar()}</div>
    </div>
    <div class="card"><div class="sectionhead"><div><h2>Academic deadlines</h2><small>Assignments and commitments</small></div><button class="tinybtn" data-go="academic">Academic planner →</button></div>${renderAcademicDeadlineRadar()}</div>
-   <div class="card"><div class="sectionhead"><div><h2>Top priorities</h2><small>Your next most important tasks</small></div><button class="tinybtn" data-go="tasks">Manage →</button></div>${topTasks.length?groupedTaskList(topTasks,{compact:true,openByDefault:false,showTools:false,showDate:true}):empty('No open tasks','Add tasks to keep track of priorities.')}</div>
   </div>
  </div>`
 }
