@@ -1,50 +1,59 @@
 # SOS — Samanvay Operating System
 
-A local-first, responsive personal productivity application based on the supplied SOS specification. The app is implemented as a self-contained HTML/CSS/JavaScript application so it can be run immediately without installing Node packages, configuring a database, or creating API keys.
+Responsive personal productivity app with a local-first mode and optional Supabase cloud account/sync.
 
-## Run it
+## Run locally
 
-1. Extract the ZIP.
-2. Open `index.html` in a modern browser.
-3. If the browser restricts storage for `file://` pages, open a terminal in this folder and run `python -m http.server 8000`, then visit `http://localhost:8000`.
+Use a local server (recommended; required for predictable script loading and auth redirects):
 
-No internet connection or build step is required for the local app.
+```bash
+python -m http.server 8000
+```
 
-## Included modules
+Open http://localhost:8000. The app continues to work in local mode before Supabase is configured.
 
-- **Command Center:** today's topics and tasks, recorded study time, deadline countdown, course progress, weekly pulse, priorities, recent sessions.
-- **Topic Planner:** single and bulk topic creation, course/date/status filters, one-click completion, editing, deleting with confirmation, rescheduling by editing the existing record, ordering controls, overdue view, estimates.
-- **Daily Planner:** task creation/edit/delete/duplicate, categories, priorities, status, scheduled dates, overdue highlighting, and confirmed carry-forward without duplication.
-- **Course Tracker:** six preloaded courses, editable total and completed lecture minutes, course deadlines, topic history/search, independent topic and lecture progress.
-- **Study Sessions & Focus Timer:** manual logging, edit/delete, 25/50/custom timer, pause/resume/stop, timer state persistence across refresh, optional linked topic, notes and practical-exercise flag. A timer does not automatically create study records or complete topics.
-- **Weekly Reviews:** Monday–Sunday date grouping, daily topic counts, course breakdown, planned estimates vs actual logged sessions, saved reflection prompts.
-- **Monthly Goals:** monthly topic counts, course breakdown, weekly breakdown, editable milestones with separate completion state.
-- **Projects & Career:** project records, repository/deployment URLs, career-readiness checklist, placement decision log for fees, terms, risks, deadlines and evidence.
-- **Reflection Journal:** dated entries, energy/focus ratings, search, edit and delete.
-- **Settings & Data:** deadline and required pace, Minimum Viable Day settings, dark/light appearance, CSV exports for topics/tasks/sessions, JSON backup and restore, reset.
+## Enable the backend (Supabase)
 
-## Data and calculations
+This version uses Supabase Auth plus a private JSONB workspace row per account. It is a real cloud database connection, while preserving the app's existing single-source-of-truth state model. It is not yet a normalized multi-table schema for each topic/task/session.
 
-- The single `topics` collection is the source of truth for daily, weekly, monthly and course topic counts.
-- The single `sessions` collection is the source of truth for actual study time.
-- Topic estimates and task estimates are planned time, not actual time.
-- Rescheduling updates the existing topic record and therefore moves its grouping automatically.
-- Completion percentages are calculated from saved records; an empty period displays 0% without dividing by zero.
-- Dates use local calendar dates for planning and Monday–Sunday week grouping.
-- Existing browser data is migrated with default fields when the app version adds settings.
+1. Create a project at https://supabase.com/.
+2. In Supabase Dashboard, open **SQL Editor**, paste the contents of `supabase-setup.sql`, and run it.
+3. Open **Project Settings → API** (or the API keys section) and copy the Project URL and publishable/anon key.
+4. Edit `config.js` and replace `https://YOUR_PROJECT_REF.supabase.co` and `YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY` with those values.
+5. In **Authentication → URL Configuration**, add your hosted site's exact URL to the allowed redirect/site URLs. For local testing, add `http://localhost:8000`.
+6. In **Authentication → Providers → Email**, decide whether email confirmation is required. If enabled, sign-up asks the user to confirm their email before signing in.
+7. Run the app from `http://localhost:8000` or host the folder as a static site. Do not open it with `file://` for cloud-auth testing.
+8. Click **Connect account** (or go to **Settings & Data → Cloud database & account**) and sign up/sign in.
 
-## Important deployment/security note
+### Important security rules
 
-This is a **complete local-first functional build**, not a cloud-hosted multi-user production deployment. It stores data in the current browser profile via `localStorage`; data does not sync across devices and is not protected by account authentication. Supabase, authentication, database migrations, Row Level Security, and hosted deployment credentials are not configured in this environment, so the app does not pretend those features are active. Use **Settings & Data → Full JSON backup** regularly. The code is structured as a standalone local app to keep it immediately runnable; moving to the requested Next.js + TypeScript + Supabase production stack is a separate migration requiring Supabase project credentials and deployment access.
+- Use only the browser-safe **publishable/anon** key in `config.js`; never put a `service_role` or secret key in frontend code.
+- The SQL enables Row Level Security and policies restricting each account to its own `user_id` row.
+- Keep your project URL and key configured correctly, and test with two separate accounts to confirm they cannot read one another's workspace.
+- Cloud sync is debounced and keeps a local browser copy. A visible sync error means the latest edit may not have reached the cloud; export a backup and check the browser console/network and Supabase policies.
+- Existing local data is uploaded when signing into a new account with no cloud workspace. If a cloud workspace already exists, the app prompts whether to load cloud data or replace it with the current browser data. Export a JSON backup before choosing.
 
-## Acceptance test checklist
+## What syncs
 
-1. Add ten newline-separated topics for one date and course.
-2. Mark four complete; daily, weekly, monthly and course views should show 4/10 for the relevant grouping.
-3. Refresh; the records and statuses should persist in the same browser.
-4. Edit one topic's planned date; it should disappear from the old date and appear on the new date without duplicating its ID.
-5. Log a study session; actual hours should update in session, daily, weekly and monthly summaries.
-6. Edit/delete the session; derived actual-time totals should recalculate.
-7. Mark a task complete and verify task totals; try carry-forward and confirm it updates existing records.
-8. Export CSVs and a JSON backup; restore the backup only after confirmation.
-9. Test at desktop and mobile widths; switch dark/light appearance in Settings.
+The app stores courses, topics, tasks, study sessions, reviews, milestones, projects, journal entries, career checklist and settings together in `sos_workspaces.data`. The browser continues to keep a local copy for resilience. Signing into the same account on another device loads the cloud workspace.
+
+The focus timer's transient countdown is still kept locally in that browser; the actual study session must be explicitly logged. This version does not yet implement live real-time collaboration or conflict merging between two devices edited simultaneously; the most recent workspace save wins. For a single-user personal planner, use one active editing device at a time until conflict handling is added.
+
+## Architecture note
+
+The backend is connected to PostgreSQL through Supabase, with one JSONB document per authenticated user. This is a pragmatic migration for the existing single-file app and enables account-based cloud persistence. If the app grows, the next architectural step is to migrate the JSONB workspace into normalized relational tables (`courses`, `topics`, `tasks`, `study_sessions`, etc.) and use transactions/migrations for individual records.
+
+## Existing features
+
+- Command Center, Topic Planner and bulk topic entry
+- Daily tasks, priorities and rescheduling
+- Course Tracker and lecture progress
+- Study session logging and focus timer
+- Weekly reviews and monthly milestones
+- Projects & Career, placement decision log and readiness checklist
+- Reflection journal, Minimum Viable Day settings
+- CSV exports, JSON backup/restore, dark/light mode
+
+## Before production
+
+Test signup/signin, email confirmation, persistence after refresh, same-account access on another device, sign-out behavior, two-account isolation, failed-network behavior, and backup restore. Set sensible Supabase Auth rate limits and email settings. This bundle does not deploy itself or create your Supabase project automatically; you must complete the dashboard setup above.
