@@ -21,6 +21,25 @@
 .backlog-done-label input{width:16px;height:16px;accent-color:var(--green);cursor:pointer}
 @media(max-width:760px){.backlog-columns{grid-template-columns:1fr}.backlog-row{grid-template-columns:minmax(0,1fr);gap:9px}.backlog-actions{justify-content:flex-start}}
 .yos-backlog-card h3{font-size:14px;margin:8px 0}.yos-backlog-card .pill{font-size:11px;color:var(--green);border:1px solid var(--line);border-radius:999px;padding:4px 8px}
+
+/* Backlog responsive layout fix: prevent narrow columns from breaking titles vertically. */
+.backlog-columns{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:22px}
+.backlog-column,.backlog-row,.backlog-item-main{min-width:0}
+.backlog-item-main{overflow-wrap:break-word;word-break:normal;hyphens:auto}
+.backlog-item-main strong{overflow-wrap:break-word;word-break:normal}
+.backlog-row{grid-template-columns:minmax(0,1fr) auto;gap:14px}
+.backlog-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-shrink:0;flex-wrap:wrap}
+.backlog-actions button,.backlog-done-label{visibility:visible;opacity:1}
+.backlog-done-label{white-space:normal;max-width:108px}
+@media(max-width:1100px){
+  .backlog-columns{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+  .backlog-columns{grid-template-columns:1fr}
+  .backlog-row{grid-template-columns:minmax(0,1fr);gap:9px}
+  .backlog-actions{justify-content:flex-start}
+  .backlog-done-label{max-width:none}
+}
 </style></head>
 <body><div class="app"><aside class="sidebar" id="sidebar"><div class="brand"><div class="brandmark">YOS</div><div><strong>Your OS</strong><small>Personal command centre</small></div></div><div class="navgroup"><div class="navlabel">Workspace</div><button class="navbtn active" data-page="home"><span class="ico">◈</span>Command Center</button><button class="navbtn" data-page="topics"><span class="ico">☑</span>Topic Planner</button><button class="navbtn" data-page="tasks"><span class="ico">▤</span>Daily Planner</button><button class="navbtn" data-page="courses"><span class="ico">▥</span>Course Tracker</button><button class="navbtn" data-page="academic"><span class="ico">▣</span>Academic Planner</button><button class="navbtn" data-page="sessions"><span class="ico">◷</span>Study Sessions</button></div><div class="navgroup"><div class="navlabel">Review</div><button class="navbtn" data-page="weekly"><span class="ico">▦</span>Weekly Reviews</button><button class="navbtn" data-page="monthly"><span class="ico">◫</span>Monthly Goals</button></div><div class="navgroup"><div class="navlabel">Growth</div><button class="navbtn" data-page="career"><span class="ico">↗</span>Projects & Career</button><button class="navbtn" data-page="journal"><span class="ico">✎</span>Reflection Journal</button><button class="navbtn" data-page="settings"><span class="ico">⚙</span>Settings & Data</button></div><div class="sidefoot">Storage: <span id="storageModeLabel">Local mode</span><br><span id="storageStatus">Your data stays on this device.</span></div></aside><main class="main"><header class="topbar"><div class="row"><button class="mobilemenu" id="menuBtn">☰</button><div><div class="crumb">SOS / <span id="crumb">Command Center</span></div><div style="font-weight:650" id="topDate"></div></div></div><div class="topactions"><span class="local-pill" id="cloudModePill">● LOCAL MODE</span><button id="cloudAuthButton" data-action="cloud-auth">Connect account</button><button id="quickTask" data-action="add-task">＋ Task</button></div></header><div class="content" id="content"></div></main></div><div id="modalRoot"></div><div id="toastRoot"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./config.js"></script>
@@ -127,7 +146,7 @@ function renderHome(){
  const days=Math.max(0,Math.ceil((dateObj(state.settings.deadline)-dateObj(today()))/86400000));
  const topTasks=state.tasks.filter(t=>t.status!=='Completed'&&t.status!=='Cancelled').sort((a,b)=>({High:0,Medium:1,Low:2}[a.priority]-({High:0,Medium:1,Low:2}[b.priority]))).slice(0,4);
  const courseCards=state.courses.slice(0,6).map(c=>{const ds=deadlineState(c.deadline),cs=courseStats(c);return `<div class="course-mini"><div class="barlabel"><span>${esc(c.name)}</span><span>${pct(cs.done,cs.planned)}%</span></div>${progress(cs.done,cs.planned)}<div class="meta">${cs.done}/${cs.planned} topics complete${ds.days!==null&&ds.days<=5?' · <span class="red">⚑ '+esc(ds.label)+'</span>':''}</div></div>`}).join('');
- return `${pageHead('Your day, at a glance.',fmtDate(today(),{weekday:'long',month:'long',day:'numeric',year:'numeric'}),`<button data-action="focus">◷ Focus session</button>`)}
+ return `${pageHead('Your day, at a glance.',fmtDate(today(),{weekday:'long',month:'long',day:'numeric',year:'numeric'}),`<button data-action="focus">◷ Focus timer</button><button class="primary" data-action="add-task">＋ Task</button>`)}
  <div class="grid stats dashboard-stats"><div class="card dashboard-stat-pair"><div class="dashboard-stat-half"><div class="statlabel">TOPICS TODAY</div><div class="statvalue accent">${done}/${ts.length}</div><div class="statnote">${pct(done,ts.length)}% complete</div></div><div class="dashboard-stat-half"><div class="statlabel">TASKS TODAY</div><div class="statvalue">${td}/${tasks.length}</div><div class="statnote">${pct(td,tasks.length)}% complete</div></div></div><div class="card dashboard-stat-pair"><div class="dashboard-stat-half"><div class="statlabel">STUDY TIME TODAY</div><div class="statvalue green">${minutesLabel(mins)}</div><div class="statnote">Actual time logged today</div></div><div class="dashboard-stat-half"><div class="statlabel">TOTAL STUDY TIME</div><div class="statvalue green">${minutesLabel(state.sessions.reduce((n,s)=>n+(+s.minutes||0),0))}</div><div class="statnote">All saved study sessions</div></div></div>${stat('DEADLINE COUNTDOWN',`${days} days`,`${minutesLabel(remaining)} lecture time remaining`)}</div>
  <div class="dashboard-grid">
   <div class="dashboard-primary">
